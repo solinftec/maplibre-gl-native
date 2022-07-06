@@ -123,8 +123,14 @@ namespace android {
 
         static auto& javaClass = jni::Class<CustomGeometrySource>::Singleton(*_env);
         static auto isCancelled = javaClass.GetMethod<jboolean (jni::jint, jni::jint, jni::jint)>(*_env, "isCancelled");
+        
+        // Fix for null reference between C -> Java
+        // https://github.com/mapbox/mapbox-gl-native/pull/15396/files
+        // https://github.com/mapbox/mapbox-gl-native/issues/12551.
 
-        assert(javaPeer);
+        if(!javaPeer) {
+            return true;
+        }
 
         auto peer = jni::Cast(*_env, javaClass, javaPeer);
         return peer.Call(*_env, isCancelled, z, x, y);
