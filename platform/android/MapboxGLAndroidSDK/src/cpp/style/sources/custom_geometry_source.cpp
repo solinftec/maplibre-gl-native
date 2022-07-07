@@ -142,6 +142,10 @@ namespace android {
                                            jni::jint y,
                                            const jni::Object<geojson::FeatureCollection>& jFeatures) {
         using namespace mbgl::android::geojson;
+        
+        if(!javaPeer) {
+            return;
+        }
 
         // Convert the jni object
         auto geometry = geojson::FeatureCollection::convert(env, jFeatures);
