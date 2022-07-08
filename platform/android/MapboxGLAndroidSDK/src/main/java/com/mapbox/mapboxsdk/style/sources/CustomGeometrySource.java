@@ -49,6 +49,8 @@ public class CustomGeometrySource extends Source {
    * A request is marked as done when the data is passed from the JNI layer to the core, after the features conversion.
    */
   private final Map<TileID, AtomicBoolean> inProgressTasksMap = new HashMap<>();
+  
+  private final Boolean isDestroyed = false;
 
   /**
    * Create a CustomGeometrySource
@@ -125,6 +127,17 @@ public class CustomGeometrySource extends Source {
     Feature[] features = querySourceFeatures(filter != null ? filter.toArray() : null);
     return features != null ? Arrays.asList(features) : new ArrayList<Feature>();
   }
+  
+  public void onDestroy() {
+    isDestroyed = true;
+    try {
+      awaitingTasksMap.clear();
+      inProgressTasksMap.clear();
+      releaseThreads();
+    } catch (Exception e) {
+      
+    }
+  }
 
   @Keep
   protected native void initialize(String sourceId, Object options);
@@ -147,7 +160,9 @@ public class CustomGeometrySource extends Source {
   protected native void finalize() throws Throwable;
 
   private void setTileData(TileID tileId, FeatureCollection data) {
-    nativeSetTileData(tileId.z, tileId.x, tileId.y, data);
+    if (!isDestroyed) {
+      nativeSetTileData(tileId.z, tileId.x, tileId.y, data);
+    }
   }
 
   /**
@@ -250,7 +265,7 @@ public class CustomGeometrySource extends Source {
   }
 
   @Keep
-  private void releaseThreads() {
+  void releaseThreads() {
     executorLock.lock();
     try {
       executor.shutdownNow();
@@ -351,7 +366,9 @@ public class CustomGeometrySource extends Source {
             GeometryTileRequest queuedRequest = awaiting.get(id);
             CustomGeometrySource source = sourceRef.get();
             if (source != null && queuedRequest != null) {
-              source.executor.execute(queuedRequest);
+              if (!source.isDestroyed) {
+                source.executor.execute(queuedRequest);
+              }
             }
 
             awaiting.remove(id);
