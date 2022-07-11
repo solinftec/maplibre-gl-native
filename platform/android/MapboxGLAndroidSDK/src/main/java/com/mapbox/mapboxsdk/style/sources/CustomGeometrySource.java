@@ -388,11 +388,7 @@ public class CustomGeometrySource extends Source {
         }
 
         private Boolean isCancelled() {
-            if (!isDestroyed.get()) {
-                return cancelled.get();
-            } else {
-                return true;
-            }
+            return cancelled.get();
         }
 
         @Override
