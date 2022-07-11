@@ -129,11 +129,9 @@ public class CustomGeometrySource extends Source {
     }
 
     public void onDestroy() {
-        isDestroyed.set(true);
         try {
-            awaitingTasksMap.clear();
-            inProgressTasksMap.clear();
             releaseThreads();
+            isDestroyed.set(true);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -176,33 +174,37 @@ public class CustomGeometrySource extends Source {
     @WorkerThread
     @Keep
     private void fetchTile(int z, int x, int y) {
-        AtomicBoolean cancelFlag = new AtomicBoolean(false);
-        TileID tileID = new TileID(z, x, y);
-        GeometryTileRequest request =
-                new GeometryTileRequest(tileID, provider, awaitingTasksMap, inProgressTasksMap, this, cancelFlag);
-
-        synchronized (awaitingTasksMap) {
-            synchronized (inProgressTasksMap) {
-                if (executor.getQueue().contains(request)) {
-                    executor.remove(request);
-                    executeRequest(request);
-                } else if (inProgressTasksMap.containsKey(tileID)) {
-                    awaitingTasksMap.put(tileID, request);
-                } else {
-                    executeRequest(request);
+        if (!isDestroyed.get()) {
+            AtomicBoolean cancelFlag = new AtomicBoolean(false);
+            TileID tileID = new TileID(z, x, y);
+            GeometryTileRequest request =
+            new GeometryTileRequest(tileID, provider, awaitingTasksMap, inProgressTasksMap, this, cancelFlag);
+            
+            synchronized (awaitingTasksMap) {
+                synchronized (inProgressTasksMap) {
+                    if (executor.getQueue().contains(request)) {
+                        executor.remove(request);
+                        executeRequest(request);
+                    } else if (inProgressTasksMap.containsKey(tileID)) {
+                        awaitingTasksMap.put(tileID, request);
+                    } else {
+                        executeRequest(request);
+                    }
                 }
             }
         }
     }
 
     private void executeRequest(@NonNull GeometryTileRequest request) {
-        executorLock.lock();
-        try {
-            if (executor != null && !executor.isShutdown()) {
-                executor.execute(request);
+        if (!isDestroyed.get()) {
+            executorLock.lock();
+            try {
+                if (executor != null && !executor.isShutdown()) {
+                    executor.execute(request);
+                }
+            } finally {
+                executorLock.unlock();
             }
-        } finally {
-            executorLock.unlock();
         }
     }
 
@@ -218,19 +220,21 @@ public class CustomGeometrySource extends Source {
     @WorkerThread
     @Keep
     private void cancelTile(int z, int x, int y) {
-        TileID tileID = new TileID(z, x, y);
-
-        synchronized (awaitingTasksMap) {
-            synchronized (inProgressTasksMap) {
-                AtomicBoolean cancelFlag = inProgressTasksMap.get(tileID);
-                // check if there is an in progress task
-                if (!(cancelFlag != null && cancelFlag.compareAndSet(false, true))) {
-                    // if there is no tasks in progress or the in progress task was already cancelled, check the executor's queue
-                    GeometryTileRequest emptyRequest =
-                            new GeometryTileRequest(tileID, null, null, null, null, null);
-                    if (!executor.getQueue().remove(emptyRequest)) {
-                        // if there was no tasks in queue, remove from the awaiting map
-                        awaitingTasksMap.remove(tileID);
+        if (!isDestroyed.get()) {
+            TileID tileID = new TileID(z, x, y);
+            
+            synchronized (awaitingTasksMap) {
+                synchronized (inProgressTasksMap) {
+                    AtomicBoolean cancelFlag = inProgressTasksMap.get(tileID);
+                    // check if there is an in progress task
+                    if (!(cancelFlag != null && cancelFlag.compareAndSet(false, true))) {
+                        // if there is no tasks in progress or the in progress task was already cancelled, check the executor's queue
+                        GeometryTileRequest emptyRequest =
+                        new GeometryTileRequest(tileID, null, null, null, null, null);
+                        if (!executor.getQueue().remove(emptyRequest)) {
+                            // if there was no tasks in queue, remove from the awaiting map
+                            awaitingTasksMap.remove(tileID);
+                        }
                     }
                 }
             }
@@ -266,17 +270,23 @@ public class CustomGeometrySource extends Source {
 
     @Keep
     void releaseThreads() {
-        executorLock.lock();
-        try {
-            executor.shutdownNow();
-        } finally {
-            executorLock.unlock();
+        if (!isDestroyed.get()) {
+            executorLock.lock();
+            try {
+                executor.shutdownNow();
+            } finally {
+                executorLock.unlock();
+            }
         }
     }
 
     @Keep
     private boolean isCancelled(int z, int x, int y) {
-        return inProgressTasksMap.get(new TileID(z, x, y)).get();
+        if (!isDestroyed.get()) {
+            return inProgressTasksMap.get(new TileID(z, x, y)).get();
+        } else {
+            return true;
+        }
     }
 
     static class TileID {
@@ -378,7 +388,11 @@ public class CustomGeometrySource extends Source {
         }
 
         private Boolean isCancelled() {
-            return cancelled.get();
+            if (!isDestroyed.get()) {
+                return cancelled.get();
+            } else {
+                return true;
+            }
         }
 
         @Override
