@@ -103,9 +103,14 @@ typedef NS_ENUM(NSUInteger, MGLLineTranslationAnchor) {
  ```swift
  let layer = MGLLineStyleLayer(identifier: "trails-path", source: trails)
  layer.sourceLayerIdentifier = "trails"
- layer.lineWidth = NSExpression(format: "mgl_interpolate:withCurveType:parameters:stops:($zoomLevel, 'exponential', 1.5, %@)",
-                                [14: 2,
-                                 18: 20])
+ 
+ let stops = NSExpression(forConstantValue: [14: 2,
+                                             18: 20])
+ layer.lineWidth = NSExpression(forMGLInterpolating: .zoomLevelVariable,
+                                curveType: .exponential,
+                                parameters: NSExpression(forConstantValue: 1.5),
+                                stops: stops)
+ 
  layer.lineColor = NSExpression(forConstantValue: UIColor.brown)
  layer.lineCap = NSExpression(forConstantValue: "round")
  layer.predicate = NSPredicate(format: "%K == %@", "trail-type", "mountain-biking")
@@ -130,7 +135,7 @@ MGL_EXPORT
  */
 - (instancetype)initWithIdentifier:(NSString *)identifier source:(MGLSource *)source;
 
-#pragma mark - Accessing the Layout Attributes
+// MARK: - Accessing the Layout Attributes
 
 /**
  The display of line endings.
@@ -244,7 +249,7 @@ MGL_EXPORT
  */
 @property (nonatomic, null_resettable) NSExpression *lineSortKey;
 
-#pragma mark - Accessing the Paint Attributes
+// MARK: - Accessing the Paint Attributes
 
 /**
  Blur applied to the line, in points.
@@ -640,7 +645,7 @@ MGL_EXPORT
  */
 @interface NSValue (MGLLineStyleLayerAdditions)
 
-#pragma mark Working with Line Style Layer Attribute Values
+// MARK: Working with Line Style Layer Attribute Values
 
 /**
  Creates a new value object containing the given `MGLLineCap` enumeration.

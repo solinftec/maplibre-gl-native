@@ -3,66 +3,46 @@ name: node-ci
 on:
   workflow_dispatch:
   push:
-    tags-ignore:
-      - '**'
-    paths-ignore:
-      - ".gitignore"
-      - "README.md"
-      # ignore other platforms
-      - "platform/android/**"
-      - "platform/darwin/**"
-      - "platform/glfw/**"
-      - "platform/ios/**"
-      - "platform/macos/**"
-      - "platform/qt/**"
-      # ignore CI for other platforms
-      - ".github/FUNDING.yml"
-      - ".github/workflows/android-ci.yml"
-      - ".github/workflows/android-ci-pull.yml"
-      - ".github/workflows/android-docker-base.yml"
-      - ".github/workflows/android-docker-ndk-r21b.yml"
-      - ".github/workflows/gh-pages-android-api.yml"
-      - ".github/workflows/gh-pages-ios-api.yml"
-      - ".github/workflows/ios-ci.yml"
-      - ".github/workflows/ios-pre-release.yml"
-      - ".github/workflows/ios-release.yml"
-      - ".github/workflows/macos-ci.yml"
-      - ".github/workflows/macos-release.yml"
-      - ".github/workflows/qt-ci-windows.yml"
-      - ".github/workflows/qt-ci.yml"
-      - ".github/workflows/update-gl-js.yml"
     branches:
       - main
+    tags:
+      - 'node-*'
+    paths:
+      - 'platform/node/**'
+      - ".github/workflows/node-ci.yml"
+      - "bin/**"
+      - "expression-test/**"
+      - "include/**"
+      - "metrics/**"
+      - "platform/default/**"
+      - "render-test/**"
+      - "scripts/**"
+      - "src/**"
+      - "test/**"
+      - "vendor/**"
+      - maplibre-gl-js
+      - ".gitmodules"
+      - "!**/*.md"
 
   pull_request:
     branches:
       - main
-    paths-ignore:
-      - ".gitignore"
-      - "README.md"
-      # ignore other platforms
-      - "platform/android/**"
-      - "platform/darwin/**"
-      - "platform/glfw/**"
-      - "platform/ios/**"
-      - "platform/macos/**"
-      - "platform/qt/**"
-      # ignore CI for other platforms
-      - ".github/FUNDING.yml"
-      - ".github/workflows/android-ci.yml"
-      - ".github/workflows/android-ci-pull.yml"
-      - ".github/workflows/android-docker-base.yml"
-      - ".github/workflows/android-docker-ndk-r21b.yml"
-      - ".github/workflows/gh-pages-android-api.yml"
-      - ".github/workflows/gh-pages-ios-api.yml"
-      - ".github/workflows/ios-ci.yml"
-      - ".github/workflows/ios-pre-release.yml"
-      - ".github/workflows/ios-release.yml"
-      - ".github/workflows/macos-ci.yml"
-      - ".github/workflows/macos-release.yml"
-      - ".github/workflows/qt-ci-windows.yml"
-      - ".github/workflows/qt-ci.yml"
-      - ".github/workflows/update-gl-js.yml"
+    paths:
+      - 'platform/node/**'
+      - ".github/workflows/node-ci.yml"
+      - "bin/**"
+      - "expression-test/**"
+      - "include/**"
+      - "metrics/**"
+      - "platform/default/**"
+      - "render-test/**"
+      - "scripts/**"
+      - "src/**"
+      - "test/**"
+      - "vendor/**"
+      - maplibre-gl-js
+      - ".gitmodules"
+      - "!**/*.md"
 
 concurrency:
   # cancel jobs on PRs only
@@ -70,15 +50,19 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  build:
+  test:
+    runs-on: ${{ matrix.runs-on }}
     strategy:
+      fail-fast: false
       matrix:
-        os:
-          - macos-11.0
-          - macos-10.15
-          - ubuntu-20.04
-          - ubuntu-18.04
-    runs-on: ${{ matrix.os }}
+        include:
+          - runs-on: ubuntu-20.04
+            arch: x86_64
+          - runs-on: macos-12
+            arch: x86_64
+          - runs-on: macos-12-arm
+            arch: arm64
+    continue-on-error: true
     env:
       BUILDTYPE: ${{github.ref == 'refs/heads/main' && 'Release' || 'Debug'}}
 
@@ -88,12 +72,20 @@ jobs:
         shell: bash
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Install dependencies
+      - name: Get OS Architecture
+        run: uname -m
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies macOS
         if: runner.os == 'macOS'
         env:
           HOMEBREW_NO_AUTO_UPDATE: 1
@@ -103,10 +95,10 @@ jobs:
           brew list ccache || brew install ccache
           brew list ninja || brew install ninja
           brew list pkg-config || brew install pkg-config
-          brew list glfw3 || brew install glfw3
+          brew list glfw || brew install glfw
           brew list libuv || brew install libuv
 
-      - name: Install dependencies
+      - name: Install dependencies Linux
         if: runner.os == 'Linux'
         env:
           DEBIAN_FRONTEND: noninteractive
@@ -133,7 +125,7 @@ jobs:
         run: ccache --clear --set-config cache_dir=~/.ccache
 
       - name: Cache ccache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         env:
           cache-name: ccache-v1
         with:
@@ -151,20 +143,29 @@ jobs:
           ccache --show-stats --set-config cache_dir=~/.ccache
 
       - name: CMake
-        if: runner.os == 'macOS'
+        if: runner.os == 'MacOS'
         run: |
-          cmake . -B build -G Ninja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=${{ env.BUILDTYPE }} -DMBGL_WITH_COVERAGE=ON
-          sed -i -e 's/$(ARCHS_STANDARD)/x86_64/g' build/build.ninja
-          sed -i -e 's/-arch arm64e/-arch x86_64/g' build/build.ninja
+          cmake . -B build -G Ninja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=${{ env.BUILDTYPE }}
 
       - name: CMake
         if: runner.os == 'Linux'
         run: |
-          cmake . -B build -G Ninja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER=gcc-10 -DCMAKE_CXX_COMPILER=g++-10
+          cmake . -B build -G Ninja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=${{ env.BUILDTYPE }} -DCMAKE_C_COMPILER=gcc-10 -DCMAKE_CXX_COMPILER=g++-10
 
       - name: Build
         run: |
           cmake --build build -j $(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null)
+
+      - name: Run render tests on macOS
+        if: runner.os == 'macOS'
+        run: ./build/mbgl-render-test-runner --manifestPath metrics/macos-xcode11-release-style.json
+
+      - name: Upload render test artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: render-query-test-results
+          path: metrics/macos-xcode11-release-style.html
 
       - name: Test
         if: runner.os == 'Linux'
@@ -179,10 +180,37 @@ jobs:
         if: github.ref != 'refs/heads/main'
         run: |
           npm pack --dry-run
+          
+  test_linux_arm:
+    runs-on: macos-12-arm
+    name: test (ubuntu-20.04, arm64)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 0
 
-      # Uncomment to start publishing the package
-      # @TODO: Figure out the binary distribution method.
-      # - name: Publish package
-      #   if: github.ref == 'refs/heads/main'
-      #   run: |
-      #     npm publish
+      - name: Install dependencies macOS
+        if: runner.os == 'macOS'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+        run: |
+          brew install docker docker-compose
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Create the docker build image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          platforms: linux/arm64
+          file: platform/node/scripts/Dockerfile_Build
+          tags: build
+          push: false
+          load: true
+
+      - name: Run the docker build image and create node libs
+        run:  docker run --rm -v $(pwd):/data build

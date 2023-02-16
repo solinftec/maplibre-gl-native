@@ -27,7 +27,7 @@
 	url = https://github.com/mapbox/eternal.git
 [submodule "vendor/mapbox-base"]
 	path = vendor/mapbox-base
-	url = https://github.com/mapbox/mapbox-base.git
+	url = https://github.com/maplibre/maplibre-native-base.git
 [submodule "vendor/googletest"]
 	path = vendor/googletest
 	url = https://github.com/google/googletest.git
@@ -49,3 +49,6 @@
 [submodule "maplibre-gl-js"]
 	path = maplibre-gl-js
 	url = https://github.com/maplibre/maplibre-gl-js.git
+[submodule "docs/doxygen/doxygen-awesome-css"]
+	path = docs/doxygen/doxygen-awesome-css
+	url = https://github.com/jothepro/doxygen-awesome-css.git

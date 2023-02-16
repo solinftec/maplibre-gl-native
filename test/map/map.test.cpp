@@ -28,6 +28,7 @@
 #include <mbgl/style/sources/vector_source.hpp>
 #include <mbgl/style/style.hpp>
 #include <mbgl/util/async_task.hpp>
+#include <mbgl/util/client_options.hpp>
 #include <mbgl/util/color.hpp>
 #include <mbgl/util/image.hpp>
 #include <mbgl/util/io.hpp>
@@ -49,7 +50,7 @@ public:
     MapAdapter map;
 
     MapTest(float pixelRatio = 1, MapMode mode = MapMode::Static)
-        : fileSource(std::make_shared<FileSource>(ResourceOptions::Default()))
+        : fileSource(std::make_shared<FileSource>(ResourceOptions::Default(), ClientOptions()))
         , frontend(pixelRatio)
         , map(frontend, observer, fileSource,
               MapOptions().withMapMode(mode).withSize(frontend.getSize()).withPixelRatio(pixelRatio)) {}
@@ -64,8 +65,8 @@ public:
             const std::string& assetPath,
             float pixelRatio = 1,
             MapMode mode = MapMode::Static,
-            typename std::enable_if<std::is_same<T, MainResourceLoader>::value>::type* = nullptr)
-        : fileSource(std::make_shared<T>(ResourceOptions().withCachePath(cachePath).withAssetPath(assetPath))),
+            typename std::enable_if_t<std::is_same_v<T, MainResourceLoader>>* = nullptr)
+        : fileSource(std::make_shared<T>(ResourceOptions().withCachePath(cachePath).withAssetPath(assetPath), ClientOptions())),
           frontend(pixelRatio),
           map(frontend,
               observer,
@@ -73,10 +74,11 @@ public:
               MapOptions().withMapMode(mode).withSize(frontend.getSize()).withPixelRatio(pixelRatio)) {}
     
     template <typename T = FileSource>
-    MapTest(const ResourceOptions& options,
+    MapTest(const ResourceOptions& resourceOptions,
+            const ClientOptions& clientOptions = ClientOptions(),
             float pixelRatio = 1,
             MapMode mode = MapMode::Static)
-        : fileSource(std::make_shared<T>(options)),
+        : fileSource(std::make_shared<T>(resourceOptions, clientOptions)),
           frontend(pixelRatio),
           map(frontend,
               observer,

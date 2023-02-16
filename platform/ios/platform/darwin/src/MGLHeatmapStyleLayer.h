@@ -41,12 +41,19 @@ NS_ASSUME_NONNULL_BEGIN
 
  ```swift
  let layer = MGLHeatmapStyleLayer(identifier: "earthquake-heat", source: earthquakes)
- layer.heatmapWeight = NSExpression(format: "mgl_interpolate:withCurveType:parameters:stops:(magnitude, 'linear', nil, %@)",
-                                    [0: 0,
-                                     6: 1])
- layer.heatmapIntensity = NSExpression(format: "mgl_interpolate:withCurveType:parameters:stops:($zoomLevel, 'linear', nil, %@)",
-                                       [0: 1,
-                                        9: 3])
+ 
+ layer.heatmapWeight = NSExpression(forMGLInterpolating: .zoomLevelVariable,
+                                     curveType: .linear,
+                                     parameters: nil,
+                                     stops: NSExpression(forConstantValue: [0: 0,
+                                                                            6: 1]))
+ 
+ layer.heatmapIntensity = NSExpression(forMGLInterpolating: .zoomLevelVariable,
+                                       curveType: .linear,
+                                       parameters: nil,
+                                       stops: NSExpression(forConstantValue: [0: 1,
+                                                                              9: 3]))
+ 
  mapView.style?.addLayer(layer)
  ```
  */
@@ -68,7 +75,7 @@ MGL_EXPORT
  */
 - (instancetype)initWithIdentifier:(NSString *)identifier source:(MGLSource *)source;
 
-#pragma mark - Accessing the Paint Attributes
+// MARK: - Accessing the Paint Attributes
 
 #if TARGET_OS_IPHONE
 /**

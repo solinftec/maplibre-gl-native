@@ -101,10 +101,10 @@ void TestRunner::registerProxyFileSource() {
 
         auto resourceLoaderFactory =
             fileSourceManager->unRegisterFileSourceFactory(mbgl::FileSourceType::ResourceLoader);
-        auto factory = [defaultFactory = std::move(resourceLoaderFactory)](const mbgl::ResourceOptions& options) {
+        auto factory = [defaultFactory = std::move(resourceLoaderFactory)](const mbgl::ResourceOptions& resourceOptions, const mbgl::ClientOptions& clientOptions) {
             assert(defaultFactory);
-            std::shared_ptr<FileSource> fileSource = defaultFactory(options);
-            return std::make_unique<ProxyFileSource>(std::move(fileSource), options);
+            std::shared_ptr<FileSource> fileSource = defaultFactory(resourceOptions, clientOptions);
+            return std::make_unique<ProxyFileSource>(std::move(fileSource), resourceOptions, clientOptions);
         };
 
         fileSourceManager->registerFileSourceFactory(mbgl::FileSourceType::ResourceLoader, std::move(factory));
@@ -257,13 +257,14 @@ void TestRunner::checkRenderTestResults(mbgl::PremultipliedImage&& actualImage, 
 
             expectedImage = mbgl::decodeImage(*maybeExpectedImage);
 
-            pixels = // implicitly converting from uint64_t
+            pixels = static_cast<double>(
                 mapbox::pixelmatch(actualImage.data.get(),
                                    expectedImage.data.get(),
                                    expectedImage.size.width,
                                    expectedImage.size.height,
                                    imageDiff.data.get(),
-                                   0.1285); // Defined in GL JS
+                                   0.1285) // Defined in GL JS
+            );
 
             metadata.diff = mbgl::encodePNG(imageDiff);
 
@@ -349,7 +350,7 @@ void TestRunner::checkProbingResults(TestMetadata& resultMetadata) {
                 return;
             }
 
-            auto result = checkValue(expected.second.size, actual->second.size, actual->second.tolerance);
+            auto result = checkValue(static_cast<float>(expected.second.size), static_cast<float>(actual->second.size), actual->second.tolerance);
             if (!std::get<bool>(result)) {
                 std::stringstream ss;
                 ss << "File size does not match at probe \"" << expected.first << "\" for file \""
@@ -663,7 +664,7 @@ LatLng getTileCenterCoordinates(const UnwrappedTileID& tileId) {
 }
 
 uint32_t getTileScreenPixelSize(float pixelRatio) {
-    return util::tileSize_D * pixelRatio;
+    return static_cast<uint32_t>(util::tileSize_D * pixelRatio);
 }
 
 uint32_t getImageTileOffset(const std::set<uint32_t>& dims, uint32_t dim, float pixelRatio) {
@@ -677,10 +678,10 @@ uint32_t getImageTileOffset(const std::set<uint32_t>& dims, uint32_t dim, float 
 
 } // namespace
 
-TestRunner::Impl::Impl(const TestMetadata& metadata, const mbgl::ResourceOptions& resourceOptions)
+TestRunner::Impl::Impl(const TestMetadata& metadata, const mbgl::ResourceOptions& resourceOptions, const mbgl::ClientOptions& clientOptions)
     : observer(std::make_unique<TestRunnerMapObserver>()),
       frontend(metadata.size, metadata.pixelRatio, swapBehavior(metadata.mapMode)),
-      fileSource(mbgl::FileSourceManager::get()->getFileSource(mbgl::FileSourceType::ResourceLoader, resourceOptions)),
+      fileSource(mbgl::FileSourceManager::get()->getFileSource(mbgl::FileSourceType::ResourceLoader, resourceOptions, clientOptions)),
       map(frontend,
           *observer.get(),
           mbgl::MapOptions()
@@ -688,7 +689,8 @@ TestRunner::Impl::Impl(const TestMetadata& metadata, const mbgl::ResourceOptions
               .withSize(metadata.size)
               .withPixelRatio(metadata.pixelRatio)
               .withCrossSourceCollisions(metadata.crossSourceCollisions),
-          resourceOptions) {}
+          resourceOptions,
+          clientOptions) {}
 
 TestRunner::Impl::~Impl() {}
 
@@ -738,7 +740,8 @@ void TestRunner::run(TestMetadata& metadata) {
     if (maps.find(key) == maps.end()) {
         maps[key] = std::make_unique<TestRunner::Impl>(
             metadata,
-            mbgl::ResourceOptions().withCachePath(manifest.getCachePath()).withApiKey(manifest.getApiKey()));
+            mbgl::ResourceOptions().withCachePath(manifest.getCachePath()).withApiKey(manifest.getApiKey()),
+            mbgl::ClientOptions());
     }
 
     ctx.runnerImpl = maps[key].get();
@@ -755,7 +758,7 @@ void TestRunner::run(TestMetadata& metadata) {
     if (metadata.mapMode == MapMode::Tile) {
         assert(camera.zoom);
         assert(camera.center);
-        auto tileIds = util::tileCover(map.latLngBoundsForCamera(camera), *camera.zoom);
+        auto tileIds = util::tileCover(map.latLngBoundsForCamera(camera), static_cast<uint8_t>(*camera.zoom));
         assert(!tileIds.empty());
         std::set<uint32_t> xDims;
         std::set<uint32_t> yDims;

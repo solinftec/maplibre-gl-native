@@ -245,7 +245,14 @@ final class NativeMapView implements NativeMap {
     if (checkState("moveBy")) {
       return;
     }
-    nativeMoveBy(dx / pixelRatio, dy / pixelRatio, duration);
+
+    try {
+      nativeMoveBy(dx / pixelRatio, dy / pixelRatio, duration);
+    } catch (java.lang.Error error) {
+      // workaround for latitude must not be NaN issue
+      // which is thrown when gl-native can't convert a screen coordinate to location
+      Logger.d(TAG, "Error when executing NativeMapView#moveBy", error);
+    }
   }
 
   @Override
@@ -266,7 +273,12 @@ final class NativeMapView implements NativeMap {
   }
 
   @Override
-  public CameraPosition getCameraForLatLngBounds(LatLngBounds bounds, int[] padding, double bearing, double tilt) {
+  public CameraPosition getCameraForLatLngBounds(
+          @NonNull LatLngBounds bounds,
+          int[] padding,
+          double bearing,
+          double tilt
+  ) {
     if (checkState("getCameraForLatLngBounds")) {
       return null;
     }
@@ -282,7 +294,7 @@ final class NativeMapView implements NativeMap {
   }
 
   @Override
-  public CameraPosition getCameraForGeometry(Geometry geometry, int[] padding, double bearing, double tilt) {
+  public CameraPosition getCameraForGeometry(@NonNull Geometry geometry, int[] padding, double bearing, double tilt) {
     if (checkState("getCameraForGeometry")) {
       return null;
     }
@@ -1149,7 +1161,9 @@ final class NativeMapView implements NativeMap {
         } else {
           Bitmap viewContent = viewCallback.getViewContent();
           if (viewContent != null) {
-            snapshotReadyCallback.onSnapshotReady(BitmapUtils.mergeBitmap(mapContent, viewContent));
+            snapshotReadyCallback.onSnapshotReady(
+                    BitmapUtils.mergeBitmaps(mapContent, viewContent)
+            );
           }
         }
       }
@@ -1514,14 +1528,7 @@ final class NativeMapView implements NativeMap {
           mapRenderer.setOnFpsChangedListener(new MapboxMap.OnFpsChangedListener() {
             @Override
             public void onFpsChanged(final double fps) {
-              handler.post(new Runnable() {
-
-                @Override
-                public void run() {
-                  listener.onFpsChanged(fps);
-                }
-
-              });
+              handler.post(() -> listener.onFpsChanged(fps));
             }
           });
         } else {

@@ -29,12 +29,13 @@ using namespace style;
 Map::Map(RendererFrontend& frontend,
          MapObserver& observer,
          const MapOptions& mapOptions,
-         const ResourceOptions& resourceOptions)
+         const ResourceOptions& resourceOptions,
+         const ClientOptions& clientOptions)
     : impl(std::make_unique<Impl>(
           frontend,
           observer,
           FileSourceManager::get()
-              ? std::shared_ptr<FileSource>(FileSourceManager::get()->getFileSource(ResourceLoader, resourceOptions))
+              ? std::shared_ptr<FileSource>(FileSourceManager::get()->getFileSource(ResourceLoader, resourceOptions, clientOptions))
               : nullptr,
           mapOptions)) {}
 
@@ -79,7 +80,7 @@ void Map::triggerRepaint() {
     impl->onUpdate();
 }
 
-#pragma mark - Style
+// MARK: - Style
 
 style::Style& Map::getStyle() {
     return *impl->style;
@@ -98,7 +99,7 @@ void Map::setStyle(std::unique_ptr<Style> style) {
     }
 }
 
-#pragma mark - Transitions
+// MARK: - Transitions
 
 void Map::cancelTransitions() {
     impl->transform.cancelTransitions();
@@ -126,7 +127,7 @@ bool Map::isPanning() const {
     return impl->transform.isPanning();
 }
 
-#pragma mark -
+// MARK: -
 
 CameraOptions Map::getCameraOptions(const optional<EdgeInsets>& padding) const {
     return impl->transform.getCameraOptions(padding);
@@ -292,7 +293,7 @@ LatLngBounds Map::latLngBoundsForCameraUnwrapped(const CameraOptions& camera) co
     return bounds;
 }
 
-#pragma mark - Bounds
+// MARK: - Bounds
 
 void Map::setBounds(const BoundOptions& options) {
     bool changeCamera = false;
@@ -349,7 +350,7 @@ BoundOptions Map::getBounds() const {
         .withMaxPitch(impl->transform.getState().getMaxPitch() * util::RAD2DEG_D);
 }
 
-#pragma mark - Map options
+// MARK: - Map options
 
 void Map::setSize(const Size size) {
     impl->transform.resize(size);
@@ -382,7 +383,7 @@ MapOptions Map::getMapOptions() const {
         .withPixelRatio(impl->pixelRatio));
 }
 
-#pragma mark - Projection mode
+// MARK: - Projection mode
 
 void Map::setProjectionMode(const ProjectionMode& options) {
     impl->transform.setProjectionMode(options);
@@ -393,7 +394,7 @@ ProjectionMode Map::getProjectionMode() const {
     return impl->transform.getProjectionMode();
 }
 
-#pragma mark - Projection
+// MARK: - Projection
 
 ScreenCoordinate Map::pixelForLatLng(const LatLng& latLng) const {
     // If the center and point longitudes are not in the same side of the
@@ -426,13 +427,13 @@ std::vector<LatLng> Map::latLngsForPixels(const std::vector<ScreenCoordinate>& s
     return ret;
 }
 
-#pragma mark - Transform
+// MARK: - Transform
 
 TransformState Map::getTransfromState() const {
     return impl->transform.getState();
 }
 
-#pragma mark - Annotations
+// MARK: - Annotations
 
 void Map::addAnnotationImage(std::unique_ptr<style::Image> image) {
     if (LayerManager::annotationsEnabled) {
@@ -477,7 +478,7 @@ void Map::removeAnnotation(AnnotationID annotation) {
     }
 }
 
-#pragma mark - Toggles
+// MARK: - Toggles
 
 void Map::setDebug(MapDebugOptions debugOptions) {
     impl->debugOptions = debugOptions;

@@ -34,6 +34,7 @@
 #import <mbgl/storage/network_status.hpp>
 #import <mbgl/storage/resource_options.hpp>
 #import <mbgl/math/wrap.hpp>
+#import <mbgl/util/client_options.hpp>
 #import <mbgl/util/constants.hpp>
 #import <mbgl/util/chrono.hpp>
 #import <mbgl/util/exception.hpp>
@@ -59,6 +60,8 @@
 #import "MGLLoggingConfiguration_Private.h"
 #import "MGLReachability.h"
 #import "MGLSettings_Private.h"
+
+#import <CoreImage/CIFilter.h>
 
 class MGLAnnotationContext;
 
@@ -204,7 +207,7 @@ public:
     MGLReachability *_reachability;
 }
 
-#pragma mark Lifecycle
+// MARK: Lifecycle
 
 + (void)initialize {
     if (self == [MGLMapView class]) {
@@ -298,13 +301,14 @@ public:
     resourceOptions.withTileServerOptions(*tileServerOptions)
                    .withCachePath(MGLOfflineStorage.sharedOfflineStorage.databasePath.UTF8String)
                    .withAssetPath([NSBundle mainBundle].resourceURL.path.UTF8String);
-    
+    mbgl::ClientOptions clientOptions;
+
     auto apiKey = [[MGLSettings sharedSettings] apiKey];
     if (apiKey) {
         resourceOptions.withApiKey([apiKey UTF8String]);
     }                     
 
-    _mbglMap = std::make_unique<mbgl::Map>(*_rendererFrontend, *_mbglView, mapOptions, resourceOptions);
+    _mbglMap = std::make_unique<mbgl::Map>(*_rendererFrontend, *_mbglView, mapOptions, resourceOptions, clientOptions);
 
     // Notify map object when network reachability status changes.
     _reachability = [MGLReachability reachabilityForInternetConnection];
@@ -624,7 +628,7 @@ public:
 #pragma clang diagnostic pop
 }
 
-#pragma mark Style
+// MARK: Style
 
 + (NSSet<NSString *> *)keyPathsForValuesAffectingStyle {
     return [NSSet setWithObject:@"styleURL"];
@@ -672,7 +676,7 @@ public:
     return _rendererFrontend->getRenderer();
 }
 
-#pragma mark View hierarchy and drawing
+// MARK: View hierarchy and drawing
 
 - (void)viewWillMoveToWindow:(NSWindow *)newWindow {
     [self deselectAnnotation:self.selectedAnnotation];
@@ -991,7 +995,7 @@ public:
     return YES;
 }
 
-#pragma mark Printing
+// MARK: Printing
 
 - (void)print:(__unused id)sender {
     _isPrinting = YES;
@@ -1006,7 +1010,7 @@ public:
     [op runOperation];
 }
 
-#pragma mark Viewport
+// MARK: Viewport
 
 + (NSSet<NSString *> *)keyPathsForValuesAffectingCenterCoordinate {
     return [NSSet setWithObjects:@"latitude", @"longitude", @"camera", nil];
@@ -1485,7 +1489,7 @@ public:
     [self setCenterCoordinate:oldCenter animated:animated completionHandler:completion];
 }
 
-#pragma mark Mouse events and gestures
+// MARK: Mouse events and gestures
 
 - (BOOL)acceptsFirstResponder {
     return YES;
@@ -1763,7 +1767,7 @@ public:
     return nil;
 }
 
-#pragma mark NSGestureRecognizerDelegate methods
+// MARK: NSGestureRecognizerDelegate methods
 - (BOOL)gestureRecognizer:(NSGestureRecognizer *)gestureRecognizer shouldAttemptToRecognizeWithEvent:(NSEvent *)event {
     if (gestureRecognizer == _singleClickRecognizer) {
         if (!self.selectedAnnotation) {
@@ -1777,7 +1781,7 @@ public:
     return YES;
 }
 
-#pragma mark Keyboard events
+// MARK: Keyboard events
 
 - (void)keyDown:(NSEvent *)event {
     // This is the recommended way to handle arrow key presses, causing
@@ -1869,7 +1873,7 @@ public:
     _compass.hidden = !rotateEnabled;
 }
 
-#pragma mark Ornaments
+// MARK: Ornaments
 
 /// Updates the zoom controls’ enabled state based on the current zoom level.
 - (void)updateZoomControls {
@@ -1888,7 +1892,7 @@ public:
     [self setDirection:-sender.doubleValue animated:YES];
 }
 
-#pragma mark Annotations
+// MARK: Annotations
 
 - (nullable NSArray<id <MGLAnnotation>> *)annotations {
     if (_annotationContextsByAnnotationTag.empty()) {
@@ -2654,7 +2658,7 @@ public:
     }
 }
 
-#pragma mark MGLMultiPointDelegate methods
+// MARK: MGLMultiPointDelegate methods
 
 - (double)alphaForShapeAnnotation:(MGLShape *)annotation {
     if (_delegateHasAlphasForShapeAnnotations) {
@@ -2684,7 +2688,7 @@ public:
     return 3.0;
 }
 
-#pragma mark MGLPopoverDelegate methods
+// MARK: MGLPopoverDelegate methods
 
 - (void)popoverDidShow:(__unused NSNotification *)notification {
     id <MGLAnnotation> annotation = self.selectedAnnotation;
@@ -2705,7 +2709,7 @@ public:
     }
 }
 
-#pragma mark Overlays
+// MARK: Overlays
 
 - (nonnull NSArray<id <MGLOverlay>> *)overlays
 {
@@ -2754,7 +2758,7 @@ public:
     [self removeAnnotations:overlays];
 }
 
-#pragma mark Tooltips and cursors
+// MARK: Tooltips and cursors
 
 - (void)updateAnnotationTrackingAreas {
     if (_wantsToolTipRects) {
@@ -2824,7 +2828,7 @@ public:
     }
 }
 
-#pragma mark Data
+// MARK: Data
 
 - (NSArray<id <MGLFeature>> *)visibleFeaturesAtPoint:(NSPoint)point {
     MGLLogDebug(@"Querying visibleFeaturesAtPoint: %@", NSStringFromPoint(point));
@@ -2897,13 +2901,13 @@ public:
     return MGLFeaturesFromMBGLFeatures(features);
 }
 
-#pragma mark User interface validation
+// MARK: User interface validation
 
 - (BOOL)validateMenuItem:(NSMenuItem *)menuItem {
     return NO;
 }
 
-#pragma mark Interface Builder methods
+// MARK: Interface Builder methods
 
 - (void)prepareForInterfaceBuilder {
     [super prepareForInterfaceBuilder];
@@ -2925,7 +2929,7 @@ public:
     self.layer.contentsScale = [NSScreen mainScreen].backingScaleFactor;
 }
 
-#pragma mark Geometric methods
+// MARK: Geometric methods
 
 - (NSPoint)convertCoordinate:(CLLocationCoordinate2D)coordinate toPointToView:(nullable NSView *)view {
     if (!CLLocationCoordinate2DIsValid(coordinate)) {
@@ -3020,7 +3024,7 @@ public:
     return mbgl::Projection::getMetersPerPixelAtLatitude(latitude, self.zoomLevel);
 }
 
-#pragma mark Debugging
+// MARK: Debugging
 
 - (MGLMapDebugMaskOptions)debugMask {
     mbgl::MapDebugOptions options = _mbglMap->getDebug();

@@ -19,7 +19,7 @@
     return YES;
 }
 
-#pragma mark - Quick actions
+// MARK: - Quick actions
 
 - (void)application:(UIApplication *)application performActionForShortcutItem:(UIApplicationShortcutItem *)shortcutItem completionHandler:(void (^)(BOOL))completionHandler {
     completionHandler([self handleShortcut:shortcutItem]);
@@ -28,7 +28,11 @@
 - (BOOL)handleShortcut:(UIApplicationShortcutItem *)shortcut {
     if ([[shortcut.type componentsSeparatedByString:@"."].lastObject isEqual:@"settings"]) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+            [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString] options:@{} completionHandler:^(BOOL success) {
+                if (success) {
+                     NSLog(@"Opened url");
+                }
+            }];
         });
 
         return YES;

@@ -1,180 +1,78 @@
-# MapLibre GL Native - Open-Source Mapbox GL Native
+[![MapLibre Logo](https://maplibre.org/img/maplibre-logo-big.svg)](https://maplibre.org/)
 
-SDK for iOS, Android and other platforms
+# MapLibre GL Native
 
-MapLibre GL Native is a community led fork derived from [mapbox-gl-native](https://github.com/mapbox/mapbox-gl-native) prior to their switch to a non-OSS license. The fork also includes Maps SDK for iOS and MacOS (forked from [mapbox-gl-native-ios](https://github.com/mapbox/mapbox-gl-native-ios)) and Android SDK (forked from [mapbox-gl-native-android](https://github.com/mapbox/mapbox-gl-native-android)). These platform-specific SDKs were merged under platform directory and they reference mapbox-gl-native directly, not as a submodule.
+MapLibre GL Native is a free and open-source library for publishing maps in your apps and desktop applications on various platforms. Fast displaying of maps is possible thanks to GPU-accelerated vector tile rendering.
 
-Beside merging in platform specific SDKs, the following changes were made compared to original mapbox projects:
+This project originated as a fork of Mapbox GL Native, before their switch to a non-OSS license in December 2020. For more information, see: [`FORK.md`](./FORK.md).
 
-* The code was upgraded so that it can be built using latest clang compiler / Xcode 12.
-* CI/CD was migrated from CircleCI to GitHub Actions. 
-* Along with GitHub releases, binaries are distributed as follows:
-    * The iOS binaries distribution was upgraded from fat packages to Swift package containing XCFramework.
-    * The Android binaries are distributed to GitHub maven package repository.
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/649392/211550776-8779041a-7c12-4bed-a7bd-c2ec80af2b29.png" alt="Android device with MapLibre" width="24%">   <img src="https://user-images.githubusercontent.com/649392/211550762-0f42ebc9-05ab-4d89-bd59-c306453ea9af.png" alt="iOS device with MapLibre" width="25%">
+</p>
 
-> The mapbox-gl-native was forked from [d60fd30 - mgbl 1.6.0](https://github.com/mapbox/mapbox-gl-native/tree/d60fd302b1f6563e7d16952f8855122fdcc85f73), mapbox-gl-native-ios from [a139216](https://github.com/mapbox/mapbox-gl-native-ios/commit/a139216) and mapbox-gl-native-android from [4c12fb2](https://github.com/mapbox/mapbox-gl-native-android/commit/4c12fb2c)
-## Build Status
+## Getting Started
 
-| SDK                                                           | Build   | Build status                                                                                                                                                                                  |
-|---------------------------------------------------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [Maps SDK for iOS](platform/ios/) | CI      | [![GitHub Action build status](https://github.com/maplibre/maplibre-gl-native/workflows/ios-ci/badge.svg)](https://github.com/maplibre/maplibre-gl-native/workflows/ios-ci)                   |
-| [Maps SDK for iOS](platform/ios/) | Release | [![GitHub Action build status](https://github.com/maplibre/maplibre-gl-native/workflows/ios-release/badge.svg)](https://github.com/maplibre/maplibre-gl-native/workflows/ios-release)         |
-| [Maps SDK for Android](platform/android/)      | CI      | [![GitHub Action build status](https://github.com/maplibre/maplibre-gl-native/workflows/android-ci/badge.svg)](https://github.com/maplibre/maplibre-gl-native/workflows/android-ci)           |
-| [Maps SDK for Android](platform/android/)     | Release | [![GitHub Action build status](https://github.com/maplibre/maplibre-gl-native/workflows/android-release/badge.svg)](https://github.com/maplibre/maplibre-gl-native/workflows/android-release) |
+To get started with MapLibre GL Native, go to your platform below.
+
+## Documentation
+
+The documentation of MapLibre GL Native is a work in progress. To get an architectural overview and to learn about the current state of the project and its path forward read the [MapLibre GL Native Markdown Book](https://maplibre.org/maplibre-gl-native/docs/book/). See below for platform-specific documentation.
+
+## Platforms
+
+- [⭐️ Android](platform/android/README.md) 
+- [⭐️ iOS](platform/ios/platform/ios/README.md)
+- [GLFW](platform/glfw)
+- [Linux](platform/linux/README.md)
+- [macOS](platform/ios/platform/macos/README.md)
+- [Node.js](platform/node/README.md)
+- [Qt](platform/qt/README.md)
+
+Platforms with a ⭐️ are **MapLibre Core Projects** and have a substantial amount of financial resources allocated to them. Learn about the different [project tiers](https://github.com/maplibre/maplibre/blob/main/PROJECT_TIERS.md#project-tiers).
+
+## Renderer Modularization & Metal
+
+![image-metal](https://user-images.githubusercontent.com/53421382/214308933-66cd4efb-b5a5-4de3-b4b4-7ed59045a1c3.png)
+
+MapLibre GL Native is being actively developed. Our big goal for 2023 is to modularize the OpenGL renderer and implement a Metal graphics backend (https://developer.apple.com/metal/). This will improve the performance and yield lower power consumption on iOS devices. At the same time, the Metal preparations will help us in the implementation of a Vulkan graphics backend.
+
+Your help in preparing the codebase for the latest graphics backends is more than welcome. Feel free to reach out if you are interested in joining the effort!
+
+- Check out the [news](https://maplibre.org/news/) on MapLibre's website.
+- See the [Design Proposals](https://github.com/louwers/maplibre-gl-native/tree/main/design-proposals) that have been accepted and are being worked on, the most recent ones being the [Rendering Modularization Design Proposal](design-proposals/2022-10-27-rendering-modularization.md) and the [Metal Port Design Proposal](design-proposals/2022-11-29-metal-port.md).
+
+## Contributing
+
+To contribute to MapLibre GL Native, see [`CONTRIBUTING.md`](CONTRIBUTING.md) and (if applicable) the specific instructions for the platform you want to contribute to.
+
+### Getting Involved
+
+Join the `#maplibre-native` Slack channel at OSMUS. Get an invite at https://slack.openstreetmap.us/ 
 
 
 ## Sponsors
 
-We thank everyone who supported us financially in the past and special thanks to the people and organizations who support us with recurring dontations:  
+We thank everyone who supported us financially in the past and special thanks to the people and organizations who support us with recurring donations!
 
-[MIERUNE Inc.](https://www.mierune.co.jp/?lang=en) [@MIERUNE](https://github.com/MIERUNE), [@jawg](https://github.com/jawg), [@nekoyasan](https://github.com/nekoyasan), [@atierian](https://github.com/atierian), [@photoprism](https://github.com/photoprism), [@kaplanlior](https://github.com/kaplanlior), [@francois2metz](https://github.com/francois2metz), [@Schneider-Geo](https://github.com/Schneider-Geo), [@serghov](https://github.com/serghov), [@ambientlight](https://github.com/ambientlight), [@joschi77](https://github.com/joschi77), [@geoffhill](https://github.com/geoffhill), [@jasongode](https://github.com/jasongode)
+Read more about the MapLibre Sponsorship Program at [https://maplibre.org/sponsors/](https://maplibre.org/sponsors/).
 
-## Documentation
+Platinum:
 
-The Android API documentation is available at https://maplibre.org/maplibre-gl-native/android/api/
-
-The iOS API documentation is available at https://maplibre.org/maplibre-gl-native/ios/api/
-
-## Installation
-
-### Android
-
-1. Add bintray maven repositories to your build.gradle at project level so that you can access MapLibre packages for Android:
-
-    ```gradle
-        allprojects {
-            repositories {
-                ...
-                mavenCentral()                
-            }
-        }
-    ```
-
-   > Note: [Bintray was turn off May 1st, 2021](https://jfrog.com/blog/into-the-sunset-bintray-jcenter-gocenter-and-chartcenter/) so we migrated all packages to maven central.
-
-2. Add the library as a dependency into your module build.gradle
-
-    ```gradle
-        dependencies {
-            ...
-            implementation 'org.maplibre.gl:android-sdk:<version>'
-            ...
-        }
-    ```
-
-3. Sync gradle and rebuild your app
-
-*Note: MapLibre by default ships with the proprietary Google Play Location Services. If you want to avoid pulling proprietary dependencies into your project, you can exclude Google Play Location Services as follows:*
-```gradle
-    implementation ('org.maplibre.gl:android-sdk:<version>') {
-        exclude group: 'com.google.android.gms'
-    }
-```
-
-### iOS
-
-1. To add a package dependency to your Xcode project, select File > Swift Packages > Add Package Dependency and enter its repository URL. You can also navigate to your target’s General pane, and in the “Frameworks, Libraries, and Embedded Content” section, click the + button, select Add Other, and choose Add Package Dependency.
-
-2. Either add MapLibre GitHub distribution URL (https://github.com/maplibre/maplibre-gl-native-distribution) or search for `maplibre-gl-native` package.
-
-3. Choose "next". Xcode should clone the distribution repository and download the binaries.
-
-## Alternative installation
-
-You can also download pre-build from releases in this repository.
-
-## How to create your own build
-
-### Source code checkout
-
-```bash
-git clone --recurse-submodules https://github.com/maplibre/maplibre-gl-native.git
-```
-
-## Build
-
-MapLibre uses tags for its Android & iOS releases based on [SemVer](https://semver.org) versioning.  This is useful for checking out a particular released version for feature enhancments or debugging.
-
-You can list available tags by issuing the command `git tag`, then use the result
-
-```bash
-# 1. Obtain a list of tags, which matches to release versions
-git tag
-
-# 2.  Set a convenience variable with the desired TAG
-# TAG=android-v9.4.2
-# TAG=android-v9.5.2
-TAG=ios-v5.12.0
-# TAG=ios-v5.12.0-pre.1
-
-# 3.  Check out a particular TAG
-git checkout tags/$TAG -b $TAG
-
-# 4. build, debug or enhance features based on the tag
-# clean, if you need to troubleshoot build dependencies by using `make clean`
-```
-
-### Android
-
----
-
-<details open><summary>macOS Build Environment:  Android Studio + NDK</summary>
-<ul>
-<li>Environment:  Android Studio + NDK<ul>
-<li><code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">JAVA_HOME=/Applications/Android Studio.app/Contents/jre/Contents/Home</code></li>
-<li><code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">ANDROID_SDK_ROOT=~/Library/Android/sdk</code></li>
-<li><code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">~/Library/Android/sdk/tools/bin/sdkmanager --install ndk;major.minor.build</code></li>
-</ul>
-</details>
+<img src="https://maplibre.org/img/aws-logo.svg" alt="Logo AWS" width="25%"/>
 
 
-```bash
-cd platform/android
-BUILDTYPE=Debug make apackage
-#BUILDTYPE=Release make apackage
-```
+Silver:
 
-Binaries are produced in `platform/android/MapboxGLAndroidSDK/build/outputs/aar/MapboxGLAndroidSDK-<BUILDTYPE>.aar`
-Please refer to [Mapbox Maps SDK for Android](platform/android/) for detailed instructions.
+<img src="https://maplibre.org/img/meta-logo.svg" alt="Logo Meta" width="50%"/>
 
-### iOS
+Stone:
 
-You can run automated test on a Simulator or Device by changing to the Scheme `iosapp` and choosing `Product` > `Test` (or use `⌘-U`).  Use `⌘-9` to navigate to `Reports` to see results and browse through screenshots.  This method of testing should work well with CI tools such as GitHub Actions, Xcode Server Bots, & AWS Device Farm.
+[MIERUNE Inc.](https://www.mierune.co.jp/?lang=en)
 
-```bash
-cd platform/ios
+Backers and Supporters:
 
-# make and open the Xcode workspace
-make iproj
+[![](https://opencollective.com/maplibre/backers.svg?avatarHeight=50&width=600)](https://opencollective.com/maplibre)
 
-# make Xcode workspace, but run in headless mode
-make iproj CI=1
+## License
 
-# Make Frameworks
-make xcframework BUILDTYPE=Release
-
-# test
-make ios-test
-
-# UITests
-#   You can review uitest results:  $(IOS_OUTPUT_PATH)/Logs/Test
- make ios-uitest
-```
-
-The packaging script will produce a `Mapbox.xcframework` in the  `platform/ios/build/ios/pkg/dynamic` folder.
-Please refer to [Mapbox Maps SDK for iOS](platform/ios/platform/ios/) for detailed instructions.
-
-
-#### MacOS
-
-```bash
-cd platform/ios
-make xpackage
-```
-
-This produces a `Mapbox.framework` in the `platform/ios/build/macos/pkg/` folder.
-Please refer to [Mapbox Maps SDK for macos](platform/ios/platform/macos/) for detailed instructions.
-
-#### Linux
-
-See [the Linux platform build section](platform/linux/) for instructions.
+**MapLibre GL Native** is licensed under the [BSD 2-Clause License](./LICENSE.md).

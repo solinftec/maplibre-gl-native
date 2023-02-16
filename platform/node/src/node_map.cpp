@@ -32,8 +32,6 @@
 #include <mbgl/util/logging.hpp>
 #include <mbgl/util/premultiply.hpp>
 
-#include <unistd.h>
-
 namespace node_mbgl {
 
 struct NodeMap::RenderOptions {
@@ -194,7 +192,7 @@ void NodeMap::New(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     info.This()->SetInternalField(1, options);
 
     mbgl::FileSourceManager::get()->registerFileSourceFactory(
-        mbgl::FileSourceType::ResourceLoader, [](const mbgl::ResourceOptions& resourceOptions) {
+        mbgl::FileSourceType::ResourceLoader, [](const mbgl::ResourceOptions& resourceOptions, const mbgl::ClientOptions& clientOptions) {
             return std::make_unique<node_mbgl::NodeFileSource>(
                 reinterpret_cast<node_mbgl::NodeMap*>(resourceOptions.platformContext()));
         });
@@ -344,11 +342,11 @@ NodeMap::RenderOptions NodeMap::ParseOptions(v8::Local<v8::Object> obj) {
     }
 
     if (Nan::Has(obj, Nan::New("width").ToLocalChecked()).FromJust()) {
-        options.size.width = Nan::To<int64_t>(Nan::Get(obj, Nan::New("width").ToLocalChecked()).ToLocalChecked()).ToChecked();
+        options.size.width = static_cast<uint32_t>(Nan::To<int64_t>(Nan::Get(obj, Nan::New("width").ToLocalChecked()).ToLocalChecked()).ToChecked());
     }
 
     if (Nan::Has(obj, Nan::New("height").ToLocalChecked()).FromJust()) {
-        options.size.height = Nan::To<int64_t>(Nan::Get(obj, Nan::New("height").ToLocalChecked()).ToLocalChecked()).ToChecked();
+        options.size.height = static_cast<uint32_t>(Nan::To<int64_t>(Nan::Get(obj, Nan::New("height").ToLocalChecked()).ToLocalChecked()).ToChecked());
     }
 
     if (Nan::Has(obj, Nan::New("classes").ToLocalChecked()).FromJust()) {
@@ -642,9 +640,10 @@ void NodeMap::cancel() {
     map = std::make_unique<mbgl::Map>(*frontend, mapObserver,
                                       mbgl::MapOptions().withSize(frontend->getSize())
                                       .withPixelRatio(pixelRatio)
-                                      .withMapMode(mbgl::MapMode::Static)
+                                      .withMapMode(mode)
                                       .withCrossSourceCollisions(crossSourceCollisions),
-                                      mbgl::ResourceOptions().withPlatformContext(reinterpret_cast<void*>(this)));
+                                      mbgl::ResourceOptions().withPlatformContext(reinterpret_cast<void*>(this)),
+                                      mbgl::ClientOptions());
 
     // FIXME: Reload the style after recreating the map. We need to find
     // a better way of canceling an ongoing rendering on the core level
@@ -851,8 +850,8 @@ void NodeMap::SetLayerZoomRange(const Nan::FunctionCallbackInfo<v8::Value>& info
         return Nan::ThrowTypeError("layer not found");
     }
 
-    layer->setMinZoom(Nan::To<double>(info[1]).ToChecked());
-    layer->setMaxZoom(Nan::To<double>(info[2]).ToChecked());
+    layer->setMinZoom(static_cast<float>(Nan::To<double>(info[1]).ToChecked()));
+    layer->setMaxZoom(static_cast<float>(Nan::To<double>(info[2]).ToChecked()));
 }
 
 void NodeMap::SetLayerProperty(const Nan::FunctionCallbackInfo<v8::Value>& info) {
@@ -1384,7 +1383,7 @@ void NodeMap::QueryRenderedFeatures(const Nan::FunctionCallbackInfo<v8::Value>& 
 
         auto array = Nan::New<v8::Array>();
         for (std::size_t i = 0; i < optional.size(); i++) {
-            Nan::Set(array, i, toJS(optional[i]));
+            Nan::Set(array, static_cast<uint32_t>(i), toJS(optional[i]));
         }
         info.GetReturnValue().Set(array);
     } catch (const std::exception &ex) {
@@ -1396,9 +1395,9 @@ NodeMap::NodeMap(v8::Local<v8::Object> options)
     : pixelRatio([&] {
           Nan::HandleScope scope;
           return Nan::Has(options, Nan::New("ratio").ToLocalChecked()).FromJust()
-                     ? Nan::To<double>(Nan::Get(options, Nan::New("ratio").ToLocalChecked())
-                           .ToLocalChecked()).ToChecked()
-                     : 1.0;
+                     ? static_cast<float>(Nan::To<double>(Nan::Get(options, Nan::New("ratio").ToLocalChecked())
+                           .ToLocalChecked()).ToChecked())
+                     : 1.0f;
       }())
     , mode([&] {
             Nan::HandleScope scope;
@@ -1420,9 +1419,10 @@ NodeMap::NodeMap(v8::Local<v8::Object> options)
     , map(std::make_unique<mbgl::Map>(*frontend, mapObserver,
                                       mbgl::MapOptions().withSize(frontend->getSize())
                                       .withPixelRatio(pixelRatio)
-                                      .withMapMode(mbgl::MapMode::Static)
+                                      .withMapMode(mode)
                                       .withCrossSourceCollisions(crossSourceCollisions),
-                                      mbgl::ResourceOptions().withPlatformContext(reinterpret_cast<void*>(this))))
+                                      mbgl::ResourceOptions().withPlatformContext(reinterpret_cast<void*>(this)),
+                                      mbgl::ClientOptions()))
     , async(new uv_async_t) {
     async->data = this;
     uv_async_init(uv_default_loop(), async, [](uv_async_t* h) {
@@ -1475,6 +1475,14 @@ void NodeFileSource::setResourceOptions(mbgl::ResourceOptions options) {
 
 mbgl::ResourceOptions NodeFileSource::getResourceOptions() {
     return this->_resourceOptions.clone();
+}
+
+void NodeFileSource::setClientOptions(mbgl::ClientOptions options) {
+    this->_clientOptions = std::move(options);
+}
+
+mbgl::ClientOptions NodeFileSource::getClientOptions() {
+    return this->_clientOptions.clone();
 }
 
 } // namespace node_mbgl

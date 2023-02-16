@@ -4,7 +4,9 @@ set(CMAKE_OSX_DEPLOYMENT_TARGET "10.11")
 # Override default CMake NATIVE_ARCH_ACTUAL
 # https://gitlab.kitware.com/cmake/cmake/-/issues/20893
 # https://stackoverflow.com/a/22689917/5531400
-set(CMAKE_OSX_ARCHITECTURES "$(ARCHS_STANDARD)")
+if(CMAKE_GENERATOR STREQUAL Xcode)
+    set(CMAKE_OSX_ARCHITECTURES "$(ARCHS_STANDARD)")
+endif()
 set_target_properties(mbgl-core PROPERTIES XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH[variant=Debug] "YES")
 
 set_target_properties(mbgl-core PROPERTIES XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES)
@@ -156,4 +158,11 @@ set_target_properties(mbgl-benchmark-runner mbgl-test-runner mbgl-render-test-ru
 if(NOT DEFINED ENV{CI})
     add_test(NAME mbgl-benchmark-runner COMMAND mbgl-benchmark-runner WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 endif()
-add_test(NAME mbgl-test-runner COMMAND mbgl-test-runner WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+add_test(
+    NAME mbgl-test-runner
+    COMMAND
+        node
+        ${PROJECT_SOURCE_DIR}/test/storage/with-server.js
+        ${PROJECT_SOURCE_DIR}/test/storage/server.js
+        $<TARGET_FILE:mbgl-test-runner>
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})

@@ -17,19 +17,18 @@ import com.mapbox.mapboxsdk.style.layers.PropertyFactory.*
 import com.mapbox.mapboxsdk.style.layers.SymbolLayer
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource
 import com.mapbox.mapboxsdk.testapp.R
-import com.mapbox.mapboxsdk.testapp.utils.GeoParseUtil.loadStringFromAssets
+import com.mapbox.mapboxsdk.testapp.databinding.ActivityLatlngboundsBinding
+import com.mapbox.mapboxsdk.testapp.utils.GeoParseUtil
 import com.mapbox.mapboxsdk.utils.BitmapUtils
-import kotlinx.android.synthetic.main.activity_latlngbounds.*
 import java.net.URISyntaxException
 
-/**
- * Test activity showcasing using the LatLngBounds camera API.
- */
+/** Test activity showcasing using the LatLngBounds camera API. */
 class LatLngBoundsActivity : AppCompatActivity() {
 
     private lateinit var mapboxMap: MapboxMap
     private lateinit var bottomSheetBehavior: BottomSheetBehavior<*>
     private lateinit var bounds: LatLngBounds
+    private lateinit var binding: ActivityLatlngboundsBinding
 
     private val peekHeight by lazy {
         375.toPx(this) // 375dp
@@ -41,16 +40,19 @@ class LatLngBoundsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_latlngbounds)
+        binding = ActivityLatlngboundsBinding.inflate(layoutInflater)
+        val view = binding.root
+        setContentView(view)
         initMapView(savedInstanceState)
     }
 
     private fun initMapView(savedInstanceState: Bundle?) {
-        mapView.onCreate(savedInstanceState)
-        mapView.getMapAsync { map ->
+        binding.mapView.onCreate(savedInstanceState)
+        binding.mapView.getMapAsync { map ->
             mapboxMap = map
 
-            val featureCollection: FeatureCollection = fromJson(loadStringFromAssets(this, "points-sf.geojson"))
+            val featureCollection: FeatureCollection =
+                fromJson(GeoParseUtil.loadStringFromAssets(this, "points-sf.geojson"))
             bounds = createBounds(featureCollection)
 
             map.getCameraForLatLngBounds(bounds, createPadding(peekHeight))?.let {
@@ -79,29 +81,38 @@ class LatLngBoundsActivity : AppCompatActivity() {
                         )
                 )
                 .withSource(GeoJsonSource("symbol", featureCollection))
-                .withImage("icon", BitmapUtils.getDrawableFromRes(this@LatLngBoundsActivity, R.drawable.ic_android)!!)
+                .withImage(
+                    "icon",
+                    BitmapUtils.getDrawableFromRes(
+                        this@LatLngBoundsActivity,
+                        R.drawable.ic_android
+                    )!!
+                )
         ) {
             initBottomSheet()
-            fab.setOnClickListener { bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED }
+            binding.fab.setOnClickListener {
+                bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+            }
         }
     }
 
     private fun initBottomSheet() {
-        bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet)
-        bottomSheetBehavior.setBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
-            override fun onSlide(bottomSheet: View, slideOffset: Float) {
-                val offset = convertSlideOffset(slideOffset)
-                val bottomPadding = (peekHeight * offset).toInt()
+        bottomSheetBehavior = BottomSheetBehavior.from(binding.bottomSheet)
+        bottomSheetBehavior.setBottomSheetCallback(
+            object : BottomSheetBehavior.BottomSheetCallback() {
+                override fun onSlide(bottomSheet: View, slideOffset: Float) {
+                    val offset = convertSlideOffset(slideOffset)
+                    val bottomPadding = (peekHeight * offset).toInt()
 
-                mapboxMap.getCameraForLatLngBounds(bounds, createPadding(bottomPadding))?.let {
-                    mapboxMap.cameraPosition = it
+                    mapboxMap.getCameraForLatLngBounds(bounds, createPadding(bottomPadding))
+                        ?.let { mapboxMap.cameraPosition = it }
+                }
+
+                override fun onStateChanged(bottomSheet: View, newState: Int) {
+                    // no-op
                 }
             }
-
-            override fun onStateChanged(bottomSheet: View, newState: Int) {
-                // no-op
-            }
-        })
+        )
     }
 
     // slideOffset ranges from NaN to -1.0, range from 1.0 to 0 instead
@@ -130,37 +141,37 @@ class LatLngBoundsActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        mapView.onStart()
+        binding.mapView.onStart()
     }
 
     override fun onResume() {
         super.onResume()
-        mapView.onResume()
+        binding.mapView.onResume()
     }
 
     override fun onPause() {
         super.onPause()
-        mapView.onPause()
+        binding.mapView.onPause()
     }
 
     override fun onStop() {
         super.onStop()
-        mapView.onStop()
+        binding.mapView.onStop()
     }
 
     override fun onLowMemory() {
         super.onLowMemory()
-        mapView.onLowMemory()
+        binding.mapView.onLowMemory()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        mapView.onDestroy()
+        binding.mapView.onDestroy()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        mapView.onSaveInstanceState(outState)
+        binding.mapView.onSaveInstanceState(outState)
     }
 }
 

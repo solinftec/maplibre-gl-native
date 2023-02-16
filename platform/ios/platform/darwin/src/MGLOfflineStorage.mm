@@ -19,6 +19,7 @@
 #include <mbgl/storage/resource_options.hpp>
 #include <mbgl/storage/resource_transform.hpp>
 #include <mbgl/util/chrono.hpp>
+#include <mbgl/util/client_options.hpp>
 #include <mbgl/util/run_loop.hpp>
 #include <mbgl/util/string.hpp>
 
@@ -159,14 +160,14 @@ const MGLExceptionName MGLUnsupportedRegionTypeException = @"MGLUnsupportedRegio
 
     if (self = [super init]) {
         mbgl::TileServerOptions* tileServerOptions = [[MGLSettings sharedSettings] tileServerOptionsInternal];
-        mbgl::ResourceOptions options;
-        options.withCachePath(self.databasePath.UTF8String)
-               .withAssetPath([NSBundle mainBundle].resourceURL.path.UTF8String)
-               .withTileServerOptions(*tileServerOptions);
-        
-        _mbglFileSource = mbgl::FileSourceManager::get()->getFileSource(mbgl::FileSourceType::ResourceLoader, options);
-        _mbglOnlineFileSource = mbgl::FileSourceManager::get()->getFileSource(mbgl::FileSourceType::Network, options);
-        _mbglDatabaseFileSource = std::static_pointer_cast<mbgl::DatabaseFileSource>(std::shared_ptr<mbgl::FileSource>(mbgl::FileSourceManager::get()->getFileSource(mbgl::FileSourceType::Database, options)));
+        mbgl::ResourceOptions resourceOptions;
+        resourceOptions.withCachePath(self.databasePath.UTF8String)
+                       .withAssetPath([NSBundle mainBundle].resourceURL.path.UTF8String)
+                       .withTileServerOptions(*tileServerOptions);
+        mbgl::ClientOptions clientOptions;
+        _mbglFileSource = mbgl::FileSourceManager::get()->getFileSource(mbgl::FileSourceType::ResourceLoader, resourceOptions, clientOptions);
+        _mbglOnlineFileSource = mbgl::FileSourceManager::get()->getFileSource(mbgl::FileSourceType::Network, resourceOptions, clientOptions);
+        _mbglDatabaseFileSource = std::static_pointer_cast<mbgl::DatabaseFileSource>(std::shared_ptr<mbgl::FileSource>(mbgl::FileSourceManager::get()->getFileSource(mbgl::FileSourceType::Database, resourceOptions, clientOptions)));
         
         // Observe for changes to the tile server options (and find out the current one).
         [[MGLSettings sharedSettings] addObserver:self
@@ -213,7 +214,7 @@ const MGLExceptionName MGLUnsupportedRegionTypeException = @"MGLUnsupportedRegio
     }
 }
 
-#pragma mark Database management methods
+// MARK: Database management methods
 
 - (NSString *)databasePath {
     return self.databaseURL.path;
@@ -403,7 +404,7 @@ const MGLExceptionName MGLUnsupportedRegionTypeException = @"MGLUnsupportedRegio
     });
 }
 
-#pragma mark Pack management methods
+// MARK: Pack management methods
 
 - (void)addPackForRegion:(id <MGLOfflineRegion>)region withContext:(NSData *)context completionHandler:(MGLOfflinePackAdditionCompletionHandler)completion {
     MGLLogDebug(@"Adding packForRegion: %@ contextLength: %lu completionHandler: %@", region, (unsigned long)context.length, completion);
@@ -543,7 +544,7 @@ const MGLExceptionName MGLUnsupportedRegionTypeException = @"MGLUnsupportedRegio
     _mbglDatabaseFileSource->setOfflineMapboxTileCountLimit(maximumCount);
 }
 
-#pragma mark - Ambient cache management
+// MARK: - Ambient cache management
 
 - (void)setMaximumAmbientCacheSize:(NSUInteger)cacheSize withCompletionHandler:(void (^)(NSError  * _Nullable))completion {
     _mbglDatabaseFileSource->setMaximumAmbientCacheSize(cacheSize, [&, completion](std::exception_ptr exception) {
@@ -609,7 +610,7 @@ const MGLExceptionName MGLUnsupportedRegionTypeException = @"MGLUnsupportedRegio
         }
     });
 }
-#pragma mark -
+// MARK: -
 
 - (unsigned long long)countOfBytesCompleted {
     NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:self.databasePath error:NULL];

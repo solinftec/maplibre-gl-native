@@ -94,9 +94,14 @@ typedef NS_ENUM(NSUInteger, MGLCircleTranslationAnchor) {
  let layer = MGLCircleStyleLayer(identifier: "circles", source: population)
  layer.sourceLayerIdentifier = "population"
  layer.circleColor = NSExpression(forConstantValue: UIColor.green)
- layer.circleRadius = NSExpression(format: "mgl_interpolate:withCurveType:parameters:stops:($zoomLevel, 'exponential', 1.75, %@)",
-                                   [12: 2,
-                                    22: 180])
+ 
+ let stops = NSExpression(forConstantValue: [12: 2,
+                                             22: 180])
+ layer.circleRadius = NSExpression(forMGLInterpolating: .zoomLevelVariable,
+                                   curveType: .exponential,
+                                   parameters: NSExpression(forConstantValue: 1.75),
+                                   stops: stops)
+ 
  layer.circleOpacity = NSExpression(forConstantValue: 0.7)
  layer.predicate = NSPredicate(format: "%K == %@", "marital-status", "married")
  mapView.style?.addLayer(layer)
@@ -120,7 +125,7 @@ MGL_EXPORT
  */
 - (instancetype)initWithIdentifier:(NSString *)identifier source:(MGLSource *)source;
 
-#pragma mark - Accessing the Layout Attributes
+// MARK: - Accessing the Layout Attributes
 
 /**
  Sorts features in ascending order based on this value. Features with a higher
@@ -137,7 +142,7 @@ MGL_EXPORT
  */
 @property (nonatomic, null_resettable) NSExpression *circleSortKey;
 
-#pragma mark - Accessing the Paint Attributes
+// MARK: - Accessing the Paint Attributes
 
 /**
  Amount to blur the circle. 1 blurs the circle such that only the centerpoint is
@@ -511,7 +516,7 @@ MGL_EXPORT
  */
 @interface NSValue (MGLCircleStyleLayerAdditions)
 
-#pragma mark Working with Circle Style Layer Attribute Values
+// MARK: Working with Circle Style Layer Attribute Values
 
 /**
  Creates a new value object containing the given `MGLCirclePitchAlignment` enumeration.

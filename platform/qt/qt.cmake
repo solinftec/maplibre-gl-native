@@ -1,6 +1,5 @@
 message(STATUS "Configuring GL-Native with Qt bindings")
 
-# VLC-Qt version number
 file(READ "${PROJECT_SOURCE_DIR}/platform/qt/VERSION" MBGL_QT_VERSION)
 string(REGEX REPLACE "\n" "" MBGL_QT_VERSION "${MBGL_QT_VERSION}") # get rid of the newline at the end
 set(MBGL_QT_VERSION_COMPATIBILITY 2.0.0)
@@ -11,6 +10,7 @@ option(MBGL_QT_STATIC "Build MapLibre GL Qt bindings staticly" OFF)
 option(MBGL_QT_INSIDE_PLUGIN "Build QMapLibreGL as OBJECT library, so it can be bundled into separate single plugin lib." OFF)
 option(MBGL_QT_WITH_HEADLESS "Build MapLibre GL Qt with headless support" ON)
 option(MBGL_QT_WITH_INTERNAL_SQLITE "Build MapLibre GL Qt bindings with internal sqlite" OFF)
+option(MBGL_QT_DEPLOYMENT "Autogenerate files necessary for deployment" OFF)
 
 find_package(QT NAMES Qt6 Qt5 COMPONENTS Core REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR}
@@ -50,11 +50,14 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     add_definitions("-D_USE_MATH_DEFINES")
 endif()
 
-if(CMAKE_SYSTEM_NAME STREQUAL iOS)
-    option(MBGL_QT_WITH_IOS_CCACHE "Enable ccache for iOS" OFF)
-    if(MBGL_QT_WITH_IOS_CCACHE)
-        include(${PROJECT_SOURCE_DIR}/platform/ios/ccache.cmake)
-    endif()
+if (MSVC)
+    foreach(config DEBUG RELWITHDEBINFO)
+        foreach(lang C CXX)
+            set(flags_var "CMAKE_${lang}_FLAGS_${config}")
+            string(REPLACE "/Zi" "/Z7" ${flags_var} "${${flags_var}}")
+            set(${flags_var} "${${flags_var}}" PARENT_SCOPE)
+        endforeach()
+    endforeach()
 endif()
 
 if(ANDROID)
@@ -131,6 +134,9 @@ include(GNUInstallDirs)
 include(${PROJECT_SOURCE_DIR}/vendor/nunicode.cmake)
 
 set_property(TARGET mbgl-core PROPERTY AUTOMOC ON)
+if (Qt6_FOUND AND COMMAND qt_enable_autogen_tool)
+    qt_enable_autogen_tool(mbgl-core "moc" ON)
+endif()
 
 target_link_libraries(
     mbgl-core
@@ -145,6 +151,7 @@ target_link_libraries(
 )
 
 set(qmaplibregl_headers
+    ${PROJECT_SOURCE_DIR}/platform/qt/include/QMapLibreGL/QMapLibreGL
     ${PROJECT_SOURCE_DIR}/platform/qt/include/QMapLibreGL/export.hpp
     ${PROJECT_SOURCE_DIR}/platform/qt/include/QMapLibreGL/map.hpp
     ${PROJECT_SOURCE_DIR}/platform/qt/include/QMapLibreGL/Map
@@ -197,6 +204,9 @@ set_target_properties(
     SOVERSION ${MBGL_QT_VERSION_COMPATIBILITY}
     PUBLIC_HEADER "${qmaplibregl_headers}"
 )
+if (Qt6_FOUND AND COMMAND qt_enable_autogen_tool)
+    qt_enable_autogen_tool(qmaplibregl "moc" ON)
+endif()
 if (APPLE AND NOT MBGL_QT_STATIC AND NOT MBGL_QT_INSIDE_PLUGIN)
     set_target_properties(
         qmaplibregl PROPERTIES
@@ -245,6 +255,11 @@ install(
     COMPONENT development
 )
 
+if(MBGL_QT_DEPLOYMENT)
+    install(FILES ${PROJECT_SOURCE_DIR}/LICENSE.md
+            DESTINATION .)
+endif()
+
 # FIXME: Because of rapidjson conversion
 target_include_directories(
     qmaplibregl
@@ -280,11 +295,18 @@ if (MBGL_QT_STATIC AND NOT MBGL_QT_INSIDE_PLUGIN)
             $<$<NOT:$<BOOL:${MBGL_QT_WITH_INTERNAL_SQLITE}>>:Qt${QT_VERSION_MAJOR}::Sql>
             $<$<NOT:$<OR:$<PLATFORM_ID:Windows>,$<PLATFORM_ID:Emscripten>>>:z>
     )
+endif()
+
+if (MBGL_QT_STATIC OR MBGL_QT_INSIDE_PLUGIN)
+    # Don't add import/export into public header because we don't build shared library.
+    # In case on MBGL_QT_INSIDE_PLUGIN it's always OBJECT library and bundled into one
+    # single Qt plugin lib.
     target_compile_definitions(
         qmaplibregl
         PUBLIC QT_MAPLIBREGL_STATIC
     )
 endif()
+
 
 install(TARGETS qmaplibregl
         EXPORT QMapLibreGLTargets
